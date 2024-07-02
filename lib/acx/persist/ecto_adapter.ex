@@ -22,7 +22,7 @@ defmodule Acx.Persist.EctoAdapter do
       field(:v3, :string)
       field(:v4, :string)
       field(:v5, :string)
-      field(:v6, :string)
+      field(:v6, :string, virtual: true, default: nil)
     end
 
     @doc """
@@ -89,7 +89,14 @@ defmodule Acx.Persist.EctoAdapter do
     end
 
     def changeset_to_list(%{ptype: ptype, v0: v0, v1: v1, v2: v2, v3: v3, v4: v4, v5: v5, v6: v6}) do
-      [ptype, v0, v1, v2, v3, v4, v5, v6] |> Enum.filter(fn a -> !Kernel.is_nil(a) end)
+      Enum.filter(
+        [ptype, v0, v1, v2, v3, v4, v5, v6],
+        fn
+          "" -> false
+          nil -> false
+          _ -> true
+        end
+      )
     end
 
     def changeset_to_queryable({_key, _attrs} = policy, idx) do
