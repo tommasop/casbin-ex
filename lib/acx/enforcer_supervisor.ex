@@ -16,10 +16,10 @@ defmodule Acx.EnforcerSupervisor do
   @doc """
   Starts a new `Enforcer` process and supervises it
   """
-  def start_enforcer(ename, cfile) do
+  def start_enforcer(ename, config) do
     child_spec = %{
       id: Acx.EnforcerServer,
-      start: {Acx.EnforcerServer, :start_link, [ename, cfile]},
+      start: {Acx.EnforcerServer, :start_link, [ename, config]},
       restart: :permanent
     }
 

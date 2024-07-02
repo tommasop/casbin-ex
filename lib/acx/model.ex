@@ -33,38 +33,38 @@ defmodule Acx.Model do
         }
 
   @doc """
-  Initializes a model given the config file `cfile`.
+  Initializes a model given the config.
 
   ## Examples
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> %Model{request: rd} = m
       ...> %RequestDefinition{key: :r, attrs: attrs} = rd
       ...> attrs
       [:sub, :obj, :act]
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> %Model{policies: definitions} = m
       ...> [%PolicyDefinition{key: :p, attrs: attrs}] = definitions
       ...> attrs
       [:sub, :obj, :act, :eft]
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> %Model{effect: %PolicyEffect{rule: rule}} = m
       ...> rule
       "some(where(p.eft==allow))"
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> %Model{role_mappings: mappings} = m
       ...> mappings
       []
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> %Model{matcher: %Matcher{prog: prog}} = m
       ...> prog
       [
@@ -81,33 +81,16 @@ defmodule Acx.Model do
         {:and}
       ]
 
-      iex> cfile = "../../test/data/kv.conf" |> Path.expand(__DIR__)
-      ...> {:error, reason} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:error, reason} = Model.init(config)
       ...> reason
       "missing `request_definition` section in the config file"
   """
-  @spec init(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def init(cfile) when is_binary(cfile) do
-    case Config.new(cfile) do
-      {:error, reason} ->
-        {:error, reason}
-
-      %Config{sections: sections} ->
-        %__MODULE__{}
-        |> validate_required_sections(sections)
-        |> build(:request)
-        |> build(:policies)
-        |> build(:effect)
-        |> build(:matcher)
-        |> build(:role_mappings)
-        |> case do
-          {:error, reason} ->
-            {:error, reason}
-
-          {:ok, model, _} ->
-            {:ok, model}
-        end
-    end
+  @spec init(struct()) :: {:ok, t()} | {:error, String.t()}
+  def init(config) do
+    config
+    |> Config.new()
+    |> build_model()
   end
 
   @doc """
@@ -115,16 +98,16 @@ defmodule Acx.Model do
 
   ## Examples
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> valid_request = ["alice", "data1", "read"]
       ...> {:ok, r} = m |> Model.create_request(valid_request)
       ...> %Request{key: :r, attrs: attrs} = r
       ...> attrs
       [sub: "alice", obj: "data1", act: "read"]
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> invalid_request = ["alice", "data1"]
       ...> {:error, reason} = m |> Model.create_request(invalid_request)
       ...> reason
@@ -142,46 +125,46 @@ defmodule Acx.Model do
 
   ## Examples
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> valid_policy = {:p, ["alice", "data1", "read"]}
       ...> {:ok, p} = m |> Model.create_policy(valid_policy)
       ...> %Policy{key: :p, attrs: attrs} = p
       ...> attrs
       [sub: "alice", obj: "data1", act: "read", eft: "allow"]
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> valid_policy = {:p, ["alice", "data1", "read", "allow"]}
       ...> {:ok, p} = m |> Model.create_policy(valid_policy)
       ...> %Policy{key: :p, attrs: attrs} = p
       ...> attrs
       [sub: "alice", obj: "data1", act: "read", eft: "allow"]
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> valid_policy = {:p, ["alice", "data1", "read", "deny"]}
       ...> {:ok, p} = m |> Model.create_policy(valid_policy)
       ...> %Policy{key: :p, attrs: attrs} = p
       ...> attrs
       [sub: "alice", obj: "data1", act: "read", eft: "deny"]
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> invalid_policy = {:q, ["alice", "data1", "read"]}
       ...> {:error, reason} = m |> Model.create_policy(invalid_policy)
       ...> reason
       "policy with key `q` is undefined"
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> invalid_policy = {:p, ["alice", "data1", "read", "foo"]}
       ...> {:error, reason} = m |> Model.create_policy(invalid_policy)
       ...> reason
       "invalid value for the `eft` attribute: `foo`"
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> invalid_policy = {:p, ["alice", "data1", :read]}
       ...> {:error, reason} = m |> Model.create_policy(invalid_policy)
       ...> reason
@@ -230,13 +213,13 @@ defmodule Acx.Model do
 
   ## Examples
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> m |> Model.has_policy_key?(:p)
       true
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> m |> Model.has_policy_key?(:q)
       false
   """
@@ -260,8 +243,8 @@ defmodule Acx.Model do
 
   ## Examples
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> false = m |> Model.has_role_mapping?(:g2)
       ...> m |> Model.has_role_mapping?(:g)
       true
@@ -278,16 +261,16 @@ defmodule Acx.Model do
 
   ## Examples
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> rule = ["alice", "data1", "read"]
       ...> {:ok, p} = m |> Model.create_policy({:p, rule})
       ...> {:ok, r} =  m |> Model.create_request(rule)
       ...> m |> Model.match?(r, p)
       true
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> rule = ["alice", "data1", "read"]
       ...> {:ok, p} = m |> Model.create_policy({:p, rule})
       ...> request = ["alice", "data1", "write"]
@@ -316,27 +299,27 @@ defmodule Acx.Model do
 
   ## Examples
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> m |> Model.allow?([])
       false
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> allowed_rule = {:p, ["alice", "data1", "read"]}
       ...> {:ok, p} = m |> Model.create_policy(allowed_rule)
       ...> m |> Model.allow?([p])
       true
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> denied_rule = {:p, ["alice", "data1", "write", "deny"]}
       ...> {:ok, p} = m |> Model.create_policy(denied_rule)
       ...> m |> Model.allow?([p])
       false
 
-      iex> cfile = "../../test/data/acl.conf" |> Path.expand(__DIR__)
-      ...> {:ok, m} = Model.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, m} = Model.init(config)
       ...> allowed_rule = {:p, ["alice", "data1", "read"]}
       ...> denied_rule = {:p, ["alice", "data1", "write", "deny"]}
       ...> {:ok, p1} = m |> Model.create_policy(allowed_rule)
@@ -368,6 +351,25 @@ defmodule Acx.Model do
 
       true ->
         {:ok, model, sections}
+    end
+  end
+
+  defp build_model({:error, msg}), do: {:error, msg}
+
+  defp build_model(%Config{sections: sections}) do
+    %__MODULE__{}
+    |> validate_required_sections(sections)
+    |> build(:request)
+    |> build(:policies)
+    |> build(:effect)
+    |> build(:matcher)
+    |> build(:role_mappings)
+    |> case do
+      {:error, reason} ->
+        {:error, reason}
+
+      {:ok, model, _} ->
+        {:ok, model}
     end
   end
 

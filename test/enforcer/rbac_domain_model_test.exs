@@ -2,7 +2,7 @@ defmodule Acx.Enforcer.RbacDomainModelTest do
   use ExUnit.Case, async: true
   alias Acx.Enforcer
 
-  @cfile "../data/rbac_domain.conf" |> Path.expand(__DIR__)
+  @cfile %Acx.Model.ConfigFileAdapter{path: "../data/acl.conf"}
   @pfile "../data/rbac_domain.csv" |> Path.expand(__DIR__)
 
   setup do

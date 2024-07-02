@@ -28,11 +28,11 @@ defmodule Acx.Enforcer do
         }
 
   @doc """
-  Loads and contructs a model from the given config file `cfile`.
+  Loads and contructs a model from the given config.
   """
-  @spec init(String.t(), PersistAdapter.t()) :: {:ok, t()} | {:error, String.t()}
-  def init(cfile, adapter) when is_binary(cfile) do
-    case init(cfile) do
+  @spec init(struct()) :: {:ok, t()} | {:error, String.t()}
+  def init(config, adapter) do
+    case init(config) do
       {:error, reason} ->
         {:error, reason}
 
@@ -43,11 +43,11 @@ defmodule Acx.Enforcer do
   end
 
   @doc """
-  Loads and contructs a model from the given config file `cfile`.
+  Loads and contructs a model from the given config.
   """
-  @spec init(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def init(cfile) when is_binary(cfile) do
-    case Model.init(cfile) do
+  @spec init(struct()) :: {:ok, t()} | {:error, String.t()}
+  def init(config) do
+    case Model.init(config) do
       {:error, reason} ->
         {:error, reason}
 
@@ -180,8 +180,8 @@ defmodule Acx.Enforcer do
   starting at the index.any()
 
     # Examples
-        iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-        ...> {:ok, e} = Enforcer.init(cfile)
+        iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+        ...> {:ok, e} = Enforcer.init(config)
         ...> e = Enforcer.add_policy(e, {:p, ["admin", "blog_post", "write"]})
         ...> e = Enforcer.add_policy(e, {:p, ["reader", "blog_post", "read"]})
         ...> e = Enforcer.add_policy(e, {:p, ["admin", "blog_post", "delete"]})
@@ -195,8 +195,8 @@ defmodule Acx.Enforcer do
         ]
 
 
-        iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-        ...> {:ok, e} = Enforcer.init(cfile)
+        iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+        ...> {:ok, e} = Enforcer.init(config)
         ...> e = Enforcer.add_policy(e, {:p, ["admin", "blog_post", "write"]})
         ...> e = Enforcer.add_policy(e, {:p, ["reader", "blog_post", "read"]})
         ...> e = Enforcer.add_policy(e, {:p, ["admin", "blog_post", "delete"]})
@@ -272,9 +272,9 @@ defmodule Acx.Enforcer do
 
   ## Examples
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
       ...> pfile = "../../test/data/acl.csv" |> Path.expand(__DIR__)
-      ...> {:ok, e} = Enforcer.init(cfile)
+      ...> {:ok, e} = Enforcer.init(config)
       ...> e = e |> Enforcer.load_policies!(pfile)
       ...> %Enforcer{policies: policies} = e
       ...> policies
@@ -365,9 +365,9 @@ defmodule Acx.Enforcer do
 
   ## Examples
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
       ...> pfile = "../../test/data/acl.csv" |> Path.expand(__DIR__)
-      ...> {:ok, e} = Enforcer.init(cfile)
+      ...> {:ok, e} = Enforcer.init(config)
       ...> e = e |> Enforcer.load_policies!(pfile)
       ...> e |> Enforcer.list_policies(%{sub: "peter"})
       [
@@ -537,31 +537,31 @@ defmodule Acx.Enforcer do
 
   ## Examples
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-      ...> {:ok, e} = Enforcer.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, e} = Enforcer.init(config)
       ...> e = e |> Enforcer.add_mapping_policy({:g, "bob", "admin"})
       ...> %Enforcer{env: %{g: g}} = e
       ...> false = g.("admin", "bob")
       ...> g.("bob", "admin")
       true
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-      ...> {:ok, e} = Enforcer.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, e} = Enforcer.init(config)
       ...> e = e |> Enforcer.add_mapping_policy({:g, "bob", "admin"})
       ...> e = e |> Enforcer.add_mapping_policy({:g, "admin", "author"})
       ...> %Enforcer{env: %{g: g}} = e
       ...> g.("bob", "author")
       true
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-      ...> {:ok, e} = Enforcer.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, e} = Enforcer.init(config)
       ...> invalid_mapping = {:g2, "bob", "admin"}
       ...> {:error, msg} = e |> Enforcer.add_mapping_policy(invalid_mapping)
       ...> msg
       "mapping name not found: `g2`"
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-      ...> {:ok, e} = Enforcer.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, e} = Enforcer.init(config)
       ...> e = e |> Enforcer.add_mapping_policy({:g, "bob", "admin"})
       ...> e |> Enforcer.add_mapping_policy({:g, "bob", "admin"})
       {:error, :already_existed}
@@ -767,8 +767,8 @@ defmodule Acx.Enforcer do
 
   ## Examples
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-      ...> {:ok, e} = Enforcer.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, e} = Enforcer.init(config)
       ...> e = e |> Enforcer.add_mapping_policy({:g, "author", "reader"})
       ...> e = e |> Enforcer.add_mapping_policy({:g, "admin", "author"})
       ...> e = e |> Enforcer.add_mapping_policy({:g, "bob", "admin"})
@@ -780,8 +780,8 @@ defmodule Acx.Enforcer do
         {:g, "author", "reader"}
       ]
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-      ...> {:ok, e} = Enforcer.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, e} = Enforcer.init(config)
       ...> e = e |> Enforcer.add_mapping_policy({:g, "author", "reader"})
       ...> e = e |> Enforcer.add_mapping_policy({:g, "admin", "author"})
       ...> e = e |> Enforcer.add_mapping_policy({:g, "bob", "admin"})
@@ -792,8 +792,8 @@ defmodule Acx.Enforcer do
         {:g, "admin", "author"}
       ]
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-      ...> {:ok, e} = Enforcer.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, e} = Enforcer.init(config)
       ...> e = e |> Enforcer.add_mapping_policy({:g, "author", "reader"})
       ...> e = e |> Enforcer.add_mapping_policy({:g, "admin", "author"})
       ...> e = e |> Enforcer.add_mapping_policy({:g, "bob", "admin"})
@@ -882,8 +882,8 @@ defmodule Acx.Enforcer do
 
   ## Examples
 
-      iex> cfile = "../../test/data/rbac.conf" |> Path.expand(__DIR__)
-      ...> {:ok, e} = Enforcer.init(cfile)
+      iex> config = %Acx.Model.ConfigFileAdapter{path: "../../test/data/acl.conf"}
+      ...> {:ok, e} = Enforcer.init(config)
       ...> my_fun = fn x, y -> x + y end
       ...> e = e |> Enforcer.add_fun({:my_fun, my_fun})
       ...> %Enforcer{env: %{my_fun: f}} = e

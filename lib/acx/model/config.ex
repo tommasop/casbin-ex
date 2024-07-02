@@ -22,6 +22,8 @@ defmodule Acx.Model.Config do
     key2 = value
   """
 
+  alias Acx.Model.ConfigAdapter
+
   defstruct sections: []
 
   @type key() :: atom()
@@ -40,10 +42,25 @@ defmodule Acx.Model.Config do
   @doc """
   Reads a config file, parses it and converts it into a Config struct.
   """
-  @spec new(String.t()) :: t() | {:error, String.t()}
-  def new(cfile) when is_binary(cfile) do
-    cfile
-    |> File.read!()
+  @spec new(struct()) :: {:error, any()} | t()
+  def new(config) do
+    config
+    |> ConfigAdapter.load_config()
+    |> case do
+      {:error, reason} ->
+        {:error, reason}
+
+      {:ok, config_text} ->
+        new_from_input(config_text)
+    end
+  end
+
+  @doc """
+  Parses a config it and converts it into a Config struct.
+  """
+  @spec new_from_input(String.t()) :: t() | {:error, String.t()}
+  def new_from_input(input) when is_binary(input) do
+    input
     |> parse()
     |> convert()
     |> validate_sections()
@@ -52,7 +69,7 @@ defmodule Acx.Model.Config do
         # TODO: provide more information about the error.
         {
           :error,
-          "error occurred when parsing config file #{cfile}: #{reason}"
+          "error occurred when parsing config: #{reason}"
         }
 
       {:ok, sections} ->

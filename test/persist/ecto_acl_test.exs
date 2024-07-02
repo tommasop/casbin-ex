@@ -6,7 +6,7 @@ defmodule Acx.Persist.EctoAclTest do
     use Acx.Persist.MockRepo, pfile: "../data/acl.csv" |> Path.expand(__DIR__)
   end
 
-  @cfile "../data/acl.conf" |> Path.expand(__DIR__)
+  @cfile %Acx.Model.ConfigFileAdapter{path: "../data/acl.conf"}
   @repo MockAclRepo
 
   setup do

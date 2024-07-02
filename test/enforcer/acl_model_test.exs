@@ -3,7 +3,7 @@ defmodule Acx.Enforcer.AclModelTest do
   alias Acx.Model.Policy
   alias Acx.Enforcer
 
-  @cfile "../data/acl.conf" |> Path.expand(__DIR__)
+  @cfile %Acx.Model.ConfigFileAdapter{path: "../data/acl.conf"}
   @pfile "../data/acl.csv" |> Path.expand(__DIR__)
 
   setup do

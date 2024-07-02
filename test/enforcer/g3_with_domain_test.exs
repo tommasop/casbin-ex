@@ -2,7 +2,7 @@ defmodule Acx.Enforcer.G3WithDomain do
   use ExUnit.Case, async: true
   alias Acx.Enforcer
 
-  @cfile "../data/g3_with_domain.conf" |> Path.expand(__DIR__)
+  @cfile %Acx.Model.ConfigFileAdapter{path: "../data/acl.conf"}
   @pfile "../data/g3_with_domain.csv" |> Path.expand(__DIR__)
 
   setup do

@@ -2,7 +2,7 @@ defmodule Acx.Enforcer.AclRestfulModelTest do
   use ExUnit.Case, async: true
   alias Acx.Enforcer
 
-  @cfile "../data/acl_restful.conf" |> Path.expand(__DIR__)
+  @cfile %Acx.Model.ConfigFileAdapter{path: "../data/acl.conf"}
   @pfile "../data/acl_restful.csv" |> Path.expand(__DIR__)
 
   setup do

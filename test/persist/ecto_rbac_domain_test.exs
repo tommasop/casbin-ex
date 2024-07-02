@@ -2,7 +2,7 @@ defmodule Acx.Persist.EctoRbacDomainTest do
   use ExUnit.Case, async: true
   alias Acx.Enforcer
 
-  @cfile "../data/rbac_domain.conf" |> Path.expand(__DIR__)
+  @cfile %Acx.Model.ConfigFileAdapter{path: "../data/acl.conf"}
 
   defmodule MockAclRepo do
     use Acx.Persist.MockRepo, pfile: "../data/rbac_domain.csv" |> Path.expand(__DIR__)

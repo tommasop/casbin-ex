@@ -14,14 +14,16 @@ defmodule Acx.EnforcerServer do
   #
 
   @doc """
-  Loads and constructs an enforcer from the given config file `cfile`,
+  Loads and constructs an enforcer from the given config adapter,
   and spawns a new process under the given name `ename` taking the
   (just constructed) enforcer as its initial state.
+  The config can be any struct that implements the `Acx.Model.ConfigAdapter`.
+  Either a file adapter or an ecto adapter.
   """
-  def start_link(ename, cfile) do
+  def start_link(ename, config) do
     GenServer.start_link(
       __MODULE__,
-      {ename, cfile},
+      {ename, config},
       name: via_tuple(ename)
     )
   end
@@ -168,8 +170,8 @@ defmodule Acx.EnforcerServer do
 
   See `Enforcer.init/1` for more details.
   """
-  def reset_configuration(ename, cfile) do
-    GenServer.call(via_tuple(ename), {:reset_configuration, cfile})
+  def reset_configuration(ename, config) do
+    GenServer.call(via_tuple(ename), {:reset_configuration, config})
   end
 
   @doc """
@@ -193,8 +195,8 @@ defmodule Acx.EnforcerServer do
   # Server Callbacks
   #
 
-  def init({ename, cfile}) do
-    case create_new_or_lookup_enforcer(ename, cfile) do
+  def init({ename, config}) do
+    case create_new_or_lookup_enforcer(ename, config) do
       {:error, reason} ->
         {:stop, reason}
 
@@ -306,8 +308,8 @@ defmodule Acx.EnforcerServer do
     end
   end
 
-  def handle_call({:reset_configuration, cfile}, _from, enforcer) do
-    case Enforcer.init(cfile) do
+  def handle_call({:reset_configuration, config}, _from, enforcer) do
+    case Enforcer.init(config) do
       {:error, reason} ->
         {:reply, {:error, reason}, enforcer}
 
@@ -350,10 +352,10 @@ defmodule Acx.EnforcerServer do
   end
 
   # Creates a new enforcer or lookups existing one in the ets table.
-  defp create_new_or_lookup_enforcer(ename, cfile) do
+  defp create_new_or_lookup_enforcer(ename, config) do
     case :ets.lookup(:enforcers_table, ename) do
       [] ->
-        case Enforcer.init(cfile) do
+        case Enforcer.init(config) do
           {:error, reason} ->
             {:error, reason}
 
