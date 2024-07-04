@@ -6,7 +6,7 @@ defmodule Acx.Persist.EctoAdapter do
   import Ecto.Changeset
   use Ecto.Schema
 
-  defstruct repo: nil
+  defstruct repo: nil, casbin_rule_table_name: nil
 
   defmodule CasbinRule do
     import Ecto.Changeset
@@ -14,7 +14,9 @@ defmodule Acx.Persist.EctoAdapter do
     use Ecto.Schema
     @columns [:ptype, :v0, :v1, :v2, :v3, :v4, :v5, :v6]
 
-    schema "casbin_rule" do
+    @default_casbin_rule_table_name "casbin_rule"
+
+    schema @default_casbin_rule_table_name do
       field(:ptype, :string)
       field(:v0, :string)
       field(:v1, :string)
@@ -111,13 +113,21 @@ defmodule Acx.Persist.EctoAdapter do
       arr = Enum.zip(@columns, [Atom.to_string(key) | attrs])
       Ecto.Query.from(CasbinRule, where: ^arr)
     end
+
+    def get_default_casbin_rule_table_name() do
+      "casbin_rule"
+    end
   end
 
-  def new(repo) do
-    %__MODULE__{repo: repo}
+  def new(repo, casbin_rule_table_name \\ nil) do
+    %__MODULE__{repo: repo, casbin_rule_table_name: casbin_rule_table_name}
   end
 
   defimpl Acx.Persist.PersistAdapter, for: Acx.Persist.EctoAdapter do
+    import Ecto.Query
+
+    alias Acx.Persist.EctoAdapter
+
     @doc """
     Queries the list of policy rules from the database and returns them
     as a list of strings.
@@ -128,13 +138,22 @@ defmodule Acx.Persist.EctoAdapter do
         ...> {:error, "repo is not set"}
     """
     @spec load_policies(EctoAdapter.t()) :: [Model.Policy.t()]
-    def load_policies(%Acx.Persist.EctoAdapter{repo: nil}) do
+    def load_policies(%EctoAdapter{repo: nil}) do
       {:error, "repo is not set"}
     end
 
-    def load_policies(adapter) do
+    def load_policies(%EctoAdapter{repo: repo, casbin_rule_table_name: casbin_rule_table_name}) do
+      casbin_rule_table_name =
+        casbin_rule_table_name || CasbinRule.get_default_casbin_rule_table_name()
+
+      query =
+        from(cr in {casbin_rule_table_name, CasbinRule},
+          select: cr
+        )
+
       policies =
-        adapter.repo.all(CasbinRule)
+        query
+        |> repo.all()
         |> Enum.map(&CasbinRule.changeset_to_list(&1))
 
       {:ok, policies}
