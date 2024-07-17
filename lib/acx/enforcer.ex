@@ -627,7 +627,7 @@ defmodule Acx.Enforcer do
   @doc """
   Loads mapping policies from the persist adapter and adds them to the enforcer.
   """
-  def load_mapping_policies!(%__MODULE__{model: m, persist_adapter: adapter} = enforcer) do
+  def load_mapping_policies!(%__MODULE__{model: m, persist_adapter: adapter} = enforcer, nil) do
     case PersistAdapter.load_policies(adapter) do
       {:ok, policies} ->
         policies

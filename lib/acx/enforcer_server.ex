@@ -161,7 +161,7 @@ defmodule Acx.EnforcerServer do
 
   See `Enforcer.load_mapping_policies!/2` for more details.
   """
-  def load_mapping_policies(ename, fname) do
+  def load_mapping_policies(ename, fname \\ nil) do
     GenServer.call(via_tuple(ename), {:load_mapping_policies, fname})
   end
 
