@@ -30,6 +30,7 @@ defmodule Acx.MixProject do
   defp deps do
     [
       {:ecto_sql, "~> 3.11"},
+      {:redix, "~> 1.5"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
