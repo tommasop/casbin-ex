@@ -64,10 +64,20 @@ defmodule Acx.EnforcerServer do
   Loads policy rules from external file given by the name `pfile` and
   adds them to the enforcer.
 
-  See `Enforcer.load_policies!/2` for more details.
+  See `Enforcer.load_policies!/3` for more details.
   """
   def load_policies(ename, pfile \\ nil) do
     GenServer.call(via_tuple(ename), {:load_policies, pfile})
+  end
+
+  @doc """
+  Reloads policy rules from external file given by the name `pfile` and
+  adds them to the enforcer.
+
+  See `Enforcer.load_policies!/3` for more details.
+  """
+  def reload_policies(ename, pfile \\ nil) do
+    GenServer.call(via_tuple(ename), {:reload_policies, pfile})
   end
 
   @doc """
@@ -76,7 +86,7 @@ defmodule Acx.EnforcerServer do
 
   See `Enforcer.list_policies/2` for more details.
   """
-  def list_policies(ename, criteria) do
+  def list_policies(ename, criteria \\ nil) do
     GenServer.call(via_tuple(ename), {:list_policies, criteria})
   end
 
@@ -166,6 +176,25 @@ defmodule Acx.EnforcerServer do
   end
 
   @doc """
+  Reloads mapping policies from a csv file and adds them to the enforcer.
+
+  See `Enforcer.load_mapping_policies!/2` for more details.
+  """
+  def reload_mapping_policies(ename, fname \\ nil) do
+    GenServer.call(via_tuple(ename), {:reload_mapping_policies, fname})
+  end
+
+  @doc """
+  Returns a list of mapping policies in the given enforcer that match the
+  given criteria.
+
+  See `Enforcer.list_mapping_policies/2` for more details.
+  """
+  def list_mapping_policies(ename, criteria \\ nil) do
+    GenServer.call(via_tuple(ename), {:list_mapping_policies, criteria})
+  end
+
+  @doc """
   Return a fresh enforcer.
 
   See `Enforcer.init/1` for more details.
@@ -247,6 +276,17 @@ defmodule Acx.EnforcerServer do
     {:reply, :ok, new_enforcer}
   end
 
+  def handle_call({:reload_policies, pfile}, _from, enforcer) do
+    new_enforcer = enforcer |> Enforcer.load_policies!(pfile, true)
+    :ets.insert(:enforcers_table, {self_name(), new_enforcer})
+    {:reply, :ok, new_enforcer}
+  end
+
+  def handle_call({:list_policies, nil}, _from, enforcer) do
+    policies = Enforcer.list_policies(enforcer)
+    {:reply, policies, enforcer}
+  end
+
   def handle_call({:list_policies, criteria}, _from, enforcer) do
     policies = enforcer |> Enforcer.list_policies(criteria)
     {:reply, policies, enforcer}
@@ -276,6 +316,22 @@ defmodule Acx.EnforcerServer do
     new_enforcer = enforcer |> Enforcer.load_mapping_policies!(fname)
     :ets.insert(:enforcers_table, {self_name(), new_enforcer})
     {:reply, :ok, new_enforcer}
+  end
+
+  def handle_call({:reload_mapping_policies, fname}, _from, enforcer) do
+    new_enforcer = enforcer |> Enforcer.load_mapping_policies!(fname, true)
+    :ets.insert(:enforcers_table, {self_name(), new_enforcer})
+    {:reply, :ok, new_enforcer}
+  end
+
+  def handle_call({:list_mapping_policies, nil}, _from, enforcer) do
+    policies = Enforcer.list_mapping_policies(enforcer)
+    {:reply, policies, enforcer}
+  end
+
+  def handle_call({:list_mapping_policies, criteria}, _from, enforcer) do
+    policies = enforcer |> Enforcer.list_mapping_policies(criteria)
+    {:reply, policies, enforcer}
   end
 
   def handle_call({:remove_mapping_policy, mapping}, _from, enforcer) do
