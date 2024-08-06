@@ -85,6 +85,14 @@ defmodule Acx.Enforcer do
     Model.allow?(model, matched_policies)
   end
 
+  @doc """
+  Broadcasts a policy update to all nodes.
+  """
+  @spec broadcast_policy_update(t(), binary(), binary()) :: {:ok, t()} | {:error, term()}
+  def broadcast_policy_update(%__MODULE__{persist_adapter: adapter}, policy, action) do
+    PersistAdapter.broadcast_policy_update(adapter, policy, action)
+  end
+
   #
   # Policy management.
   #

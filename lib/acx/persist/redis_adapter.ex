@@ -5,16 +5,18 @@ defmodule Acx.Persist.RedisAdapter do
   """
 
   @default_casbin_rule_prefix "casbin:policies:"
+  @default_channel "casbin_policy"
 
-  defstruct conn: nil, casbin_rule_prefix: @default_casbin_rule_prefix
+  defstruct conn: nil, casbin_rule_prefix: @default_casbin_rule_prefix, channel: @default_channel
 
   @type t :: %__MODULE__{
           conn: Redix.connection(),
-          casbin_rule_prefix: String.t()
+          casbin_rule_prefix: String.t(),
+          channel: String.t()
         }
 
-  def new(conn, casbin_rule_prefix \\ @default_casbin_rule_prefix) do
-    %__MODULE__{conn: conn, casbin_rule_prefix: casbin_rule_prefix}
+  def new(conn, casbin_rule_prefix \\ @default_casbin_rule_prefix, channel \\ @default_channel) do
+    %__MODULE__{conn: conn, casbin_rule_prefix: casbin_rule_prefix, channel: channel}
   end
 
   defimpl Acx.Persist.PersistAdapter, for: Acx.Persist.RedisAdapter do
@@ -161,6 +163,34 @@ defmodule Acx.Persist.RedisAdapter do
       end)
 
       adapter
+    end
+
+    @doc """
+    Broadcasts a policy update to all subscribers of the topic.
+
+    Returns an error if conn is not set.
+
+    ## Examples
+
+        iex> PersistAdapter.broadcast_policy_update(
+        ...>    %Acx.Persist.RedisAdapter{},
+        ...>    "policy_update",
+        ...>    "add")
+        ...> {:error, "conn is not set"}
+    """
+    def broadcast_policy_update(%RedisAdapter{conn: nil}, _poilcy, _action) do
+      {:error, "conn is not set"}
+    end
+
+    def broadcast_policy_update(
+          %RedisAdapter{conn: conn, channel: channel} = adapter,
+          policy,
+          action
+        ) do
+      case Redix.command(conn, ["PUBLISH", channel, "#{action}:#{policy}"]) do
+        {:ok, _} -> {:ok, adapter}
+        {:error, msg} -> {:error, msg}
+      end
     end
   end
 end

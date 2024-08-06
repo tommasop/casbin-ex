@@ -236,6 +236,10 @@ defmodule Acx.EnforcerServer do
     GenServer.call(via_tuple(ename), {:set_loaded_mapping_policies, policies})
   end
 
+  def broadcast_policy_update(ename) do
+    GenServer.call(via_tuple(ename), :broadcast_policy_update)
+  end
+
   #
   # Server Callbacks
   #
@@ -418,6 +422,16 @@ defmodule Acx.EnforcerServer do
     new_enforcer = enforcer |> Enforcer.process_loaded_mapping_policies!(policies, true)
     :ets.insert(:enforcers_table, {self_name(), new_enforcer})
     {:reply, :ok, new_enforcer}
+  end
+
+  def handle_call(:broadcast_policy_update, _from, enforcer) do
+    case Enforcer.broadcast_policy_update(enforcer, "all", "update") do
+      {:error, reason} ->
+        {:reply, {:error, reason}, enforcer}
+
+      {:ok, _enforcer} ->
+        {:reply, :ok, enforcer}
+    end
   end
 
   #

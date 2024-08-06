@@ -55,5 +55,9 @@ defmodule Acx.Persist.ReadonlyFileAdapter do
     def remove_filtered_policy(adapter, _key, _idx, _attrs) do
       {:ok, adapter}
     end
+
+    def broadcast_policy_update(adapter, _policy, _action) do
+      {:ok, adapter}
+    end
   end
 end

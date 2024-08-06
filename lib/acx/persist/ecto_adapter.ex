@@ -264,5 +264,9 @@ defmodule Acx.Persist.EctoAdapter do
         end)
       end)
     end
+
+    def broadcast_policy_update(adapter, _policy, _action) do
+      {:ok, adapter}
+    end
   end
 end
