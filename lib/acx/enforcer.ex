@@ -325,21 +325,28 @@ defmodule Acx.Enforcer do
     {:error, "No adapter set and no policy file provided"}
   end
 
-  def load_policies!(%__MODULE__{} = enforcer, pfile, reload?) do
-    %__MODULE__{model: m, persist_adapter: adapter, policies: policies} = enforcer
-    policies = if reload?, do: [], else: policies
+  def load_policies!(%__MODULE__{persist_adapter: adapter} = enforcer, pfile, reload?) do
     adapter = if is_binary(pfile), do: Acx.Persist.ReadonlyFileAdapter.new(pfile), else: adapter
-    enforcer = %{enforcer | model: m, persist_adapter: adapter, policies: policies}
+    enforcer = %{enforcer | persist_adapter: adapter}
 
     case PersistAdapter.load_policies(adapter) do
       {:ok, policies} ->
-        policies
-        |> Enum.uniq()
-        |> Enum.map(fn [key | attrs] -> [String.to_atom(key) | attrs] end)
-        |> Enum.filter(fn [key | _] -> Model.has_policy_key?(m, key) end)
-        |> Enum.map(fn [key | attrs] -> {key, attrs} end)
-        |> Enum.reduce(enforcer, &load_policy!(&2, &1, !reload?))
+        process_loaded_policies!(enforcer, policies, reload?)
     end
+  end
+
+  @spec process_loaded_policies!(t(), [String.t()], boolean()) :: t()
+  def process_loaded_policies!(%__MODULE__{} = enforcer, policies, reload?) do
+    %__MODULE__{model: m, policies: current_policies} = enforcer
+    current_policies = if reload?, do: [], else: current_policies
+    enforcer = %{enforcer | policies: current_policies}
+
+    policies
+    |> Enum.uniq()
+    |> Enum.map(fn [key | attrs] -> [String.to_atom(key) | attrs] end)
+    |> Enum.filter(fn [key | _] -> Model.has_policy_key?(m, key) end)
+    |> Enum.map(fn [key | attrs] -> {key, attrs} end)
+    |> Enum.reduce(enforcer, &load_policy!(&2, &1, !reload?))
   end
 
   @doc """
@@ -649,7 +656,7 @@ defmodule Acx.Enforcer do
       ) do
     {:ok, policies} = PersistAdapter.load_policies(adapter)
 
-    apply_mapping_policies(enforcer, policies, reload?)
+    process_loaded_mapping_policies!(enforcer, policies, reload?)
   end
 
   def load_mapping_policies!(
@@ -662,10 +669,10 @@ defmodule Acx.Enforcer do
     |> File.read!()
     |> String.split("\n", trim: true)
     |> Enum.map(&String.split(&1, ~r{,\s*}))
-    |> then(&apply_mapping_policies(enforcer, &1, reload?))
+    |> then(&process_loaded_mapping_policies!(enforcer, &1, reload?))
   end
 
-  defp apply_mapping_policies(%__MODULE__{model: m} = enforcer, policies, reload?) do
+  def process_loaded_mapping_policies!(%__MODULE__{model: m} = enforcer, policies, reload?) do
     enforcer = if reload?, do: %{enforcer | mapping_policies: []}, else: enforcer
 
     policies

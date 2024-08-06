@@ -220,6 +220,22 @@ defmodule Acx.EnforcerServer do
     GenServer.call(via_tuple(ename), {:set_persist_adapter, adapter})
   end
 
+  @doc """
+  Set the loaded policies for the enforcer. This is useful when you have
+  loaded policies from a file and want to set them in the enforcer.
+  """
+  def set_loaded_policies(ename, policies) do
+    GenServer.call(via_tuple(ename), {:set_loaded_policies, policies})
+  end
+
+  @doc """
+  Set the loaded mapping policies for the enforcer. This is useful when you have
+  loaded policies from a file and want to set them in the enforcer.
+  """
+  def set_loaded_mapping_policies(ename, policies) do
+    GenServer.call(via_tuple(ename), {:set_loaded_mapping_policies, policies})
+  end
+
   #
   # Server Callbacks
   #
@@ -390,6 +406,18 @@ defmodule Acx.EnforcerServer do
         :ets.insert(:enforcers_table, {self_name(), new_enforcer})
         {:reply, :ok, new_enforcer}
     end
+  end
+
+  def handle_call({:set_loaded_policies, policies}, _from, enforcer) do
+    new_enforcer = enforcer |> Enforcer.process_loaded_policies!(policies, true)
+    :ets.insert(:enforcers_table, {self_name(), new_enforcer})
+    {:reply, :ok, new_enforcer}
+  end
+
+  def handle_call({:set_loaded_mapping_policies, policies}, _from, enforcer) do
+    new_enforcer = enforcer |> Enforcer.process_loaded_mapping_policies!(policies, true)
+    :ets.insert(:enforcers_table, {self_name(), new_enforcer})
+    {:reply, :ok, new_enforcer}
   end
 
   #

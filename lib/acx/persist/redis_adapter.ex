@@ -67,10 +67,20 @@ defmodule Acx.Persist.RedisAdapter do
           %RedisAdapter{conn: conn, casbin_rule_prefix: casbin_rule_prefix} = adapter,
           {ptype, attrs} = _policy
         ) do
+      {attrs, value} =
+        if Keyword.keyword?(attrs) do
+          {eft, attrs} = Keyword.pop(attrs, :eft, "allow")
+          attrs = Keyword.values(attrs)
+          value = if eft == "allow", do: "1", else: "0"
+          {attrs, value}
+        else
+          {attrs, "1"}
+        end
+
       rule = Enum.join([ptype | attrs], ":")
       key = "#{casbin_rule_prefix}#{rule}"
 
-      case Redix.command(conn, ["SET", key, "1"]) do
+      case Redix.command(conn, ["SET", key, value]) do
         {:ok, _} -> {:ok, adapter}
         {:error, msg} -> {:error, "Error adding policy: #{inspect(msg)}"}
       end
@@ -146,9 +156,11 @@ defmodule Acx.Persist.RedisAdapter do
           %RedisAdapter{} = adapter,
           policies
         ) do
-      Enum.each(policies, fn policy ->
-        add_policy(adapter, policy)
+      Enum.each(policies, fn %{key: key, attrs: attrs} ->
+        add_policy(adapter, {key, attrs})
       end)
+
+      adapter
     end
   end
 end
