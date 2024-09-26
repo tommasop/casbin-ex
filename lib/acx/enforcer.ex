@@ -334,7 +334,11 @@ defmodule Acx.Enforcer do
   end
 
   def load_policies!(%__MODULE__{persist_adapter: adapter} = enforcer, pfile, reload?) do
-    adapter = if is_binary(pfile), do: Acx.Persist.ReadonlyFileAdapter.new(pfile), else: adapter
+    adapter =
+      if is_binary(pfile) && not String.contains?(pfile, "\n"),
+        do: Acx.Persist.ReadonlyFileAdapter.new(pfile),
+        else: adapter
+
     enforcer = %{enforcer | persist_adapter: adapter}
 
     case PersistAdapter.load_policies(adapter) do
