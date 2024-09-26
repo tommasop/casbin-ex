@@ -13,7 +13,7 @@ defmodule Acx.Model.ConfigEnvAdapter do
     end
 
     def load_config(%Acx.Model.ConfigEnvAdapter{content: content}) do
-      content
+      {:ok, content}
     end
   end
 end
